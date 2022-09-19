@@ -7,17 +7,17 @@
  * This file is responsible for starting the plugin using the main plugin class file.
  *
  * @since 0.0.1
- * @package Plugin_Name
+ * @package download_file_for_cf7
  *
  * @wordpress-plugin
- * Plugin Name:     Plugin Name
- * Description:     This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Plugin Name:     Donwload Files for CF7
+ * Description:     Download files from a CF7 form after submitting
  * Version:         0.0.1
- * Author:          Your Name
+ * Author:          Víctor Valera
  * Author URI:      https://www.example.com
  * License:         GPL-2.0+
  * License URI:     http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain:     plugin-name
+ * Text Domain:     wp-download-file-from-cf7
  * Domain Path:     /lang
  */
 
@@ -25,37 +25,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die( 'Direct access not permitted.' );
 }
 
-if ( ! class_exists( 'plugin_name' ) ) {
+if ( ! class_exists( 'download_file_for_cf7' ) ) {
 
 	/*
-	 * main plugin_name class
+	 * main download_file_for_cf7 class
 	 *
-	 * @class plugin_name
+	 * @class download_file_for_cf7
 	 * @since 0.0.1
 	 */
-	class plugin_name {
+	class download_file_for_cf7 {
 
 		/*
-		 * plugin_name plugin version
+		 * download_file_for_cf7 plugin version
 		 *
 		 * @var string
 		 */
-		public $version = '4.7.5';
+		public $version = '1.0.0';
 
 		/**
 		 * The single instance of the class.
 		 *
-		 * @var plugin_name
+		 * @var download_file_for_cf7
 		 * @since 0.0.1
 		 */
 		protected static $instance = null;
 
 		/**
-		 * Main plugin_name instance.
+		 * Main download_file_for_cf7 instance.
 		 *
 		 * @since 0.0.1
 		 * @static
-		 * @return plugin_name - main instance.
+		 * @return download_file_for_cf7 - main instance.
 		 */
 		public static function instance() {
 			if ( is_null( self::$instance ) ) {
@@ -65,7 +65,7 @@ if ( ! class_exists( 'plugin_name' ) ) {
 		}
 
 		/**
-		 * plugin_name class constructor.
+		 * download_file_for_cf7 class constructor.
 		 */
 		public function __construct() {
 			$this->load_plugin_textdomain();
@@ -100,29 +100,29 @@ if ( ! class_exists( 'plugin_name' ) ) {
 
 
 		/**
-		 * Define plugin_name constants
+		 * Define download_file_for_cf7 constants
 		 */
 		private function define_constants() {
-			define( 'PLUGIN_NAME_PLUGIN_FILE', __FILE__ );
-			define( 'PLUGIN_NAME_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-			define( 'PLUGIN_NAME_VERSION', $this->version );
-			define( 'PLUGIN_NAME_PATH', $this->plugin_path() );
+			define( 'download_file_for_cf7_PLUGIN_FILE', __FILE__ );
+			define( 'download_file_for_cf7_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+			define( 'download_file_for_cf7_VERSION', $this->version );
+			define( 'download_file_for_cf7_PATH', $this->plugin_path() );
 		}
 
 		/**
-		 * Define plugin_name actions
+		 * Define download_file_for_cf7 actions
 		 */
 		public function define_actions() {
 			//
 		}
 
 		/**
-		 * Define plugin_name menus
+		 * Define download_file_for_cf7 menus
 		 */
 		public function define_menus() {
             //
 		}
 	}
 
-	$plugin_name = new plugin_name();
+	$download_file_for_cf7 = new download_file_for_cf7();
 }
