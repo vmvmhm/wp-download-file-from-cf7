@@ -4,7 +4,7 @@ if ( ! defined('ABSPATH') ) {
 }
 
 
-function recipes_post_type() {
+function dfcf7_post_type() {
     register_post_type( 'dfcf7',
         array(
             'labels' => array(
@@ -28,7 +28,7 @@ function recipes_post_type() {
 
 
 //// Add cuisines taxonomy
-function create_recipes_taxonomy() {
+function create_groups_dfcf7_taxonomy() {
     register_taxonomy('dfcf7-categories','dfcf7',array(
         'hierarchical' => false,
         'labels' => array(
@@ -51,114 +51,139 @@ function create_recipes_taxonomy() {
 
 function add_url_metaboxes() {
 	add_meta_box('url_live_template', 'URL Downloadable file', 'url_live_template', 'dfcf7', 'normal', 'default');
-	add_meta_box('url_live_template2', 'Acceptance fields', 'url_live_template2', 'dfcf7', 'normal', 'default');
+	add_meta_box('acceptance_fields', 'Acceptance fields', 'acceptance_fields', 'dfcf7', 'normal', 'default');
 
 }
 
 
 function url_live_template() {
 	global $post;
-	
-	// Añadimos un 'noncename' que necesitaremos para verificar los datos y de dónde vienen.
-	echo '<input type="hidden" name="urltemplate_noncename" id="urltemplate_noncename" value="' . 
-	wp_create_nonce( plugin_basename(__FILE__) ) . '" />';
-	
-	// Recuperar los datos existentes, si es que hay datos existentes.
 	$url_template = get_post_meta($post->ID, 'url_template', true);
-	
-	// El input que aparecerá en administración donde introducir/mostrar los datos
-	echo '<input type="text" name="url_template" value="' . $url_template  . '" />';
+	echo '<input style= "width:50%" type="url" name="url_template" value="' . $url_template  . '" />';
+}
+
+function acceptance_fields() {
+
+	global $post;
+
+    wp_nonce_field( basename(__FILE__), 'mam_nonce' );
+    $postmeta = maybe_unserialize( get_post_meta( $post->ID, '_acceptance_boxes', true ) );
+        if (!is_array($postmeta)) {
+            $postmeta = array();
+        }
+
+/*Gets all cf7 forms ID*/
+    $cf7_id_array = array();
+    if (post_type_exists('wpcf7_contact_form')) {
+        $args = array('post_type' => 'wpcf7_contact_form', 'post_per_page' => -1);
+        $the_query = new WP_Query($args);
+        if ($the_query->have_posts()) {
+            while ($the_query->have_posts()) {
+                $the_query->the_post();
+                $cf7_id_array[] = get_the_ID();
+            }
+            wp_reset_postdata();
+        }
+    }
+
+foreach ($cf7_id_array as $form_id) {
+
+    $ContactForm = WPCF7_ContactForm::get_instance( $form_id );
+    $form_fields = $ContactForm->scan_form_tags();
+
+    echo "<h3>Form: " . get_the_title($form_id) . "</h3>";
+
+    foreach ($form_fields as $key) {
+    	if ($key->type == "acceptance" or $key->type == "acceptance*") {
+    		
+
+    		if (is_array( $postmeta ) && in_array( $key->raw_name, $postmeta )) {
+    			$checked = 'checked="checked"';
+    		}else{
+    			$checked = '';
+    		}
+
+            $used = get_all_used_checkbox();
+
+            if (is_array($used) && in_array_recursive($key->raw_name, $used) and !in_array($key->raw_name, $postmeta)) {
+                $disabled = 'disabled';
+                $checked = 'checked="checked"';
+
+            }else{
+                $disabled = '';
+            }
+
+    		echo "<div>";
+    		echo " <input type = 'checkbox' name = '_acceptance_boxes[]' value = '".$key->raw_name."' $checked $disabled/>" .$key->raw_name;
+            if ($disabled) {
+                echo "<span style = 'color: gray; font-size: 12px; font-style: italic;'> - (Used for another download)</span>";
+            }
+    		echo "</div>";
+    	}
+    }
 
 }
 
-function url_live_template2() {
-$form_ID     = 93; # change the 1538 to your CF7 form ID
-$ContactForm = WPCF7_ContactForm::get_instance( $form_ID );
-$form_fields = $ContactForm->scan_form_tags();
-echo "<pre>";
-//var_dump( $form_fields[0] );
-echo "</pre>";
-
-
-foreach ($form_fields as $key) {
-	//echo $key->type;
-
-	if ($key->type == "acceptance" or $key->type == "acceptance*") {
-		//echo $key->raw_name . "<br />";
-		echo "<div>";
-		echo $key->raw_name ." <input type = 'checkbox' value = '".$key->raw_name."' />";
-		echo "</div>";
-	}
 }
 
 
+
+
+function in_array_recursive($needle, $haystack) { 
+    $it = new RecursiveIteratorIterator(new RecursiveArrayIterator($haystack)); 
+    foreach($it AS $element) { 
+        if($element == $needle) { 
+            return true; 
+        } 
+    } 
+    return false; 
+} 
+
+
+function save_url_data($post_id){
+	global $post;
+    $is_autosave = wp_is_post_autosave( $post_id );
+    $is_revision = wp_is_post_revision( $post_id );
+    $is_valid_nonce = ( isset( $_POST[ 'mam_nonce' ] ) && wp_verify_nonce( $_POST[ 'mam_nonce' ], basename( __FILE__ ) ) ) ? 'true' : 'false';
+
+    if ( $is_autosave || $is_revision || !$is_valid_nonce ) {
+        return;
+    }
+
+    // If the checkbox was not empty, save it as array in post meta
+    if ( ! empty( $_POST['_acceptance_boxes'] ) ) {
+        update_post_meta( $post_id, '_acceptance_boxes', $_POST['_acceptance_boxes'] );
+    // Otherwise just delete it if its blank value.
+    } else {
+        delete_post_meta( $post_id, '_acceptance_boxes' );
+    }
+
+    // If the url was not empty, save it
+    if ( ! empty($_POST['url_template']) and wp_http_validate_url($_POST['url_template'])) {
+        update_post_meta( $post_id, 'url_template', $_POST['url_template'] );
+    // Otherwise just delete it if its blank value.
+    } else {
+        delete_post_meta( $post_id, 'url_template' );
+    }
+
 }
 
-/*----------------------------------------------*/
-//		ESTA ES LA FUNCION QUE GRABA LOS DATOS, PARA REVISAR
 
-/*
-function save_url_live_template($post_id, $post) {
-	
-	// Verificamos que los datos vienen del metabox donde se encuentra el noncename que hemos establecido anteriormente
-	if ( !wp_verify_nonce( $_POST['urltemplate_noncename'], plugin_basename(__FILE__) )) {
-	return $post->ID;
-	}
 
-	// Verificamos si el usuario tiene autorización para editar el post
-	if ( !current_user_can( 'edit_post', $post->ID ))
-		return $post->ID;
+function get_all_used_checkbox(){
+    $posts = get_posts([
+      'post_type' => 'dfcf7',
+      'post_status' => 'publish',
+      'numberposts' => -1
+      // 'order'    => 'ASC'
+    ]);
 
-	// Incluimos los datos en un array para poder hacer el foreach de más abajo.
-	
-	$url_meta['url_template'] = $_POST['url_template'];
-	
-	foreach ($url_meta as $key => $value) { 
-		if( $post->post_type == 'revision' ) return; // Verificamos que no se trate de una revisión.
-		if(get_post_meta($post->ID, $key, false)) { // Si ya tiene un valor, lo actualizamos.
-			update_post_meta($post->ID, $key, $value);
-		} else { // Si no tiene un valor, lo creamos.
-			add_post_meta($post->ID, $key, $value);
-		}
-		if(!$value) delete_post_meta($post->ID, $key); // Si está en blanco, lo borramos.
-	}
 
+    $checkbox_used = array();
+    foreach($posts as $p){
+        $checkbox = get_post_meta($p->ID,"_acceptance_boxes",true);
+        if( ! in_array( $checkbox, $checkbox_used) )
+            $checkbox_used[] = array($checkbox, $p->ID);
+    }
+    return $checkbox_used;
 }
-
-add_action('save_post', 'save_url_live_template', 1, 2); // Guardamos los datos
-
-*/
-
-
-
-
-
-
-/*
-function prefix_teammembers_metaboxes( ) {
-   global $wp_meta_boxes;
-   add_meta_box('postfunctiondiv', __('FILE URL'), 'prefix_teammembers_metaboxes_html', 'dfcf7', 'normal', 'high');
-}
-add_action( 'add_meta_boxes_dfcf7', 'prefix_teammembers_metaboxes' );
-
-function prefix_teammembers_metaboxes_html()
-{
-    global $post;
-    $custom = get_post_custom($post->ID);
-    $downloadurlcf7 = isset($custom["downloadurlcf7"][0])?$custom["downloadurlcf7"][0]:'';
-?>
-    <input style = "width: 100%;" name="downloadurlcf7" value="<?php echo $downloadurlcf7; ?>">
-<?php
-}
-
-function prefix_teammembers_save_post()
-{
-    if(empty($_POST)) return; //why is prefix_teammembers_save_post triggered by add new? 
-    global $post;
-    update_post_meta($post->ID, "downloadurlcf7", $_POST["downloadurlcf7"]);
-}   
-
-add_action( 'save_post_dfcf7', 'prefix_teammembers_save_post' ); 
-
-
-*/
